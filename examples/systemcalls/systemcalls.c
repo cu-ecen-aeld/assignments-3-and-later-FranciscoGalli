@@ -16,8 +16,7 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
-
-    return true;
+	return (system(cmd)==0);
 }
 
 /**
@@ -40,14 +39,12 @@ bool do_exec(int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+    int status;
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
-    // this line is to avoid a compile warning before your implementation is complete
-    // and may be removed
-    command[count] = command[count];
 
 /*
  * TODO:
@@ -58,10 +55,42 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+	pid_t pid;
+	pid = fork();
+	if(pid == -1)
+	{
+		va_end(args);
+		return false;
+	}
+	else if(pid==0)
+	{
+		//Child process.					
+    	execv(command[0], command);
 
-    va_end(args);
+		//If execl goes well, it should never reach this point
+		exit (-1);
+	}
+	
+	//Waiting for specific (only) child created.
+	if(waitpid (pid,&status,0) == -1)
+	{
+		//error waiting child
+		va_end(args);
+		return false;
+	}
+	else if (WIFEXITED(status))
+	{
+		//child terminated normally
+		if(WEXITSTATUS(status)==0)
+		{
+			//commad executed ok
+			va_end(args);
+			return true;
+		}
+	}
 
-    return true;
+	va_end(args);
+	return false;
 }
 
 /**
@@ -75,6 +104,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     va_start(args, count);
     char * command[count+1];
     int i;
+    int status;
     for(i=0; i<count; i++)
     {
         command[i] = va_arg(args, char *);
@@ -84,7 +114,6 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     // and may be removed
     command[count] = command[count];
 
-
 /*
  * TODO
  *   Call execv, but first using https://stackoverflow.com/a/13784315/1446624 as a refernce,
@@ -92,8 +121,57 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+	
+	pid_t pid;
+	pid = fork();
+	if(pid == -1)
+	{
+		va_end(args);
+		return false;
+	}
+	else if(pid==0)
+	{
+		//Child process.
+		//Redirect stdout to output file:
+			//Open/Create output file with rw-r--r--
+		int fd = open(outputfile, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+		if(fd == -1)
+		{
+			va_end(args);
+			return false;
+		}
+			//Next line do the redirection
+		if (dup2(fd, 1) < 0) 
+		{
+			return false; 
+		}
+    	close(fd);		
+						
+    	execv(command[0], command);
 
-    va_end(args);
+		//If execl goes well, it should never reach this point
+		exit (-1);
+	}
+	
+	//Waiting for specific (only) child created.
+	if(waitpid (pid,&status,0) == -1)
+	{
+		//error waiting child
+		va_end(args);
+		return false;
+	}
+	else if (WIFEXITED(status))
+	{
+		//child terminated normally
+		if(WEXITSTATUS(status)==0)
+		{
+			//commad executed ok
+			va_end(args);
+			return true;
+		}
+	}
 
-    return true;
+	va_end(args);
+	return false;
+
 }
