@@ -33,6 +33,10 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+sudo apt-get update && sudo apt-get install -y \
+       build-essential bc bison flex libssl-dev libelf-dev \
+       libncurses5-dev libncursesw5-dev
+
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/linux-stable" ]; then
     #Clone only if the repository does not exist.
