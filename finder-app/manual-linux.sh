@@ -12,11 +12,16 @@ BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
-SYSROOTDIR=/home/fran/arm-cross-compiler/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-linux-gnu/aarch64-none-linux-gnu
+SYSROOTDIR=$(find / -type d -name "aarch64-none-linux-gnu" 2>/dev/null | head -n 1)
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 export CROSS_COMPILE
 export PATH="$PATH:/home/fran/arm-cross-compiler/arm-gnu-toolchain-13.3.rel1-x86_64-aarch64-none-linux-gnu/bin"
 
+if [ -z "$SYSROOTDIR" ]; then
+    echo "ERROR: Sysroot directory not found!"
+    exit 1
+fi
+echo "Using SYSROOTDIR: $SYSROOTDIR"
 
 if [ $# -lt 1 ]
 then
@@ -118,15 +123,11 @@ echo "Library dependencies"
 
 # TODO: Add library dependencies to rootfs
 
-cd ${SYSROOTDIR}/libc/lib
-ls
-cp ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib
+cp ${SYSROOTDIR}/libc/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib
 
-cd ${SYSROOTDIR}/libc/lib64
-ls
-cp libm.so.6			${OUTDIR}/rootfs/lib64
-cp libresolv.so.2		${OUTDIR}/rootfs/lib64
-cp libc.so.6			${OUTDIR}/rootfs/lib64
+cp ${SYSROOTDIR}/libc/lib64/libm.so.6			${OUTDIR}/rootfs/lib64
+cp ${SYSROOTDIR}/libc/lib64/libresolv.so.2		${OUTDIR}/rootfs/lib64
+cp ${SYSROOTDIR}/libc/lib64/libc.so.6			${OUTDIR}/rootfs/lib64
 
 
 echo "Dependencies copied"
